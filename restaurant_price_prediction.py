@@ -62,6 +62,10 @@ def run_app():
 
         similar_restaurants = filtered_df.sort_values(by='Average Cost for two', key=lambda x: abs(x - predicted_price))
 
+             # Decode the city numbers back to city names
+similar_restaurants['City'] = le.inverse_transform(similar_restaurants['City'])
+
+
         st.subheader("Top Similar Restaurants")
         st.dataframe(similar_restaurants[['Restaurant Name', 'City', 'Cuisines', 'Aggregate rating', 'Average Cost for two']].head(10))
 
