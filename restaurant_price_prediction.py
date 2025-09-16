@@ -1,4 +1,4 @@
-# Restaurant Price Prediction with Restaurant Suggestions
+# === Restaurant Price Prediction with Restaurant Suggestions ===
 
 # === 1. Import Libraries ===
 import pandas as pd
@@ -20,17 +20,23 @@ df = df[['Restaurant Name', 'City', 'Cuisines', 'Has Online delivery', 'Has Tabl
          'Aggregate rating', 'Average Cost for two']]
 df = df.dropna()
 
-le = LabelEncoder()
-df['City'] = le.fit_transform(df['City'].astype(str))
-df['Cuisines'] = le.fit_transform(df['Cuisines'].astype(str))
+# Separate LabelEncoders for City and Cuisines
+le_city = LabelEncoder()
+df['City'] = le_city.fit_transform(df['City'].astype(str))
+
+le_cuisine = LabelEncoder()
+df['Cuisines'] = le_cuisine.fit_transform(df['Cuisines'].astype(str))
+
 df['Has Online delivery'] = df['Has Online delivery'].apply(lambda x: 1 if x == 'Yes' else 0)
 df['Has Table booking'] = df['Has Table booking'].apply(lambda x: 1 if x == 'Yes' else 0)
 
+# Features and target
 X = df[['Aggregate rating', 'City', 'Cuisines', 'Has Online delivery', 'Has Table booking']]
 y = df['Average Cost for two']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# Train model
 model = RandomForestRegressor()
 model.fit(X_train, y_train)
 
@@ -45,8 +51,9 @@ def run_app():
     book_table = st.selectbox("Book Table Available?", ["Yes", "No"])
 
     if st.button("Predict Price and Show Restaurants"):
-        city_enc = le.transform([city])[0] if city in le.classes_ else 0
-        cuisine_enc = le.transform([cuisines])[0] if cuisines in le.classes_ else 0
+        # Encode inputs
+        city_enc = le_city.transform([city])[0] if city in le_city.classes_ else 0
+        cuisine_enc = le_cuisine.transform([cuisines])[0] if cuisines in le_cuisine.classes_ else 0
         online_order_enc = 1 if online_order == "Yes" else 0
         book_table_enc = 1 if book_table == "Yes" else 0
 
@@ -60,11 +67,14 @@ def run_app():
                          (df['Has Online delivery'] == online_order_enc) &
                          (df['Has Table booking'] == book_table_enc)]
 
-        similar_restaurants = filtered_df.sort_values(by='Average Cost for two', key=lambda x: abs(x - predicted_price))
+        similar_restaurants = filtered_df.sort_values(
+            by='Average Cost for two',
+            key=lambda x: abs(x - predicted_price)
+        )
 
-             # Decode the city numbers back to city names
-similar_restaurants['City'] = le.inverse_transform(similar_restaurants['City'])
-
+        # Decode city and cuisine for display
+        similar_restaurants['City'] = le_city.inverse_transform(similar_restaurants['City'])
+        similar_restaurants['Cuisines'] = le_cuisine.inverse_transform(similar_restaurants['Cuisines'])
 
         st.subheader("Top Similar Restaurants")
         st.dataframe(similar_restaurants[['Restaurant Name', 'City', 'Cuisines', 'Aggregate rating', 'Average Cost for two']].head(10))
